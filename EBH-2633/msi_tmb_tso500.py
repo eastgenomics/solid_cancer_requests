@@ -3,6 +3,7 @@ import dxpy as dx
 import pandas as pd
 import sys
 
+
 def get_002_TSO500_projects_in_period(first_date, last_date):
     """
     Gets all the 002 TSO500 projects between the period given
@@ -17,8 +18,8 @@ def get_002_TSO500_projects_in_period(first_date, last_date):
     tso_projs_ids : list
         list of project IDs within the period
     """
-    # Search projs in the period starting with 002 and ending with TSO500
-    # Return only the ID field from describe
+    #Search projs in the period starting with 002 and ending with TSO500
+    #Return only the ID field from describe
     tso_projs_response = list(dx.find_projects(
         level='VIEW',
         created_before=last_date,
@@ -27,7 +28,7 @@ def get_002_TSO500_projects_in_period(first_date, last_date):
         name_mode="glob"
     ))
 
-    # Get only the IDs from each response dict
+    #Get only the IDs from each response dict
     tso_projs_ids = [proj['id'] for proj in tso_projs_response]
 
     return tso_projs_ids
@@ -57,9 +58,9 @@ def get_name_of_TSO_folder(project_id):
         )
     )
 
-    # Get the actual string of the folder name from the list
-    # and remove /output/ from the beginning of the string to just get the
-    # name of the single folder, rather than path
+    #Get the actual string of the folder name from the list
+    #and remove /output/ from the beginning of the string to just get the
+    #name of the single folder, rather than path
     folder_name = [
         name.removeprefix('/output/') for name in folder_names
     ][0]
@@ -81,8 +82,8 @@ def get_combinedvariantoutput_files(project_id, folder_name):
     combined_var_files : list
         list of dicts containing info about the files found
     """
-    # List all of the CombinedVariantOutput files in the specific folder
-    # of that project. Only find files with 8471 or 8475 in the name (DNA)
+    #List all of the CombinedVariantOutput files in the specific folder
+    #of that project. Only find files with 8471 or 8475 in the name (DNA)
     combinedvar_files_response = list(
         dx.find_data_objects(
             project=project_id,
@@ -102,9 +103,9 @@ def get_combinedvariantoutput_files(project_id, folder_name):
         )
     )
 
-    # Get only these fields in a simple dict for easier querying later
-    # and to make the merged list of the hundreds of files slightly
-    # smaller later
+    #Get only these fields in a simple dict for easier querying later
+    #and to make the merged list of the hundreds of files slightly
+    #smaller later
     combined_var_files = [
         {
             'project': x['project'],
@@ -115,6 +116,7 @@ def get_combinedvariantoutput_files(project_id, folder_name):
     ]
 
     return combined_var_files
+
 
 def find_archived_files(combined_var_files):
     """
@@ -156,7 +158,8 @@ def unarchive_files(archived_files):
 
 def read_to_df(file_dict):
     """
-    Read from DNA Sample ID to Gene Amplifications (excluding) part of the CombinedVariantOutput tsv
+    Read from DNA Sample ID to Gene Amplifications 
+    (excluding) part of the CombinedVariantOutput tsv
     (from a DNAnexus file ID) into a pandas dataframe
 
     Parameters
@@ -172,22 +175,20 @@ def read_to_df(file_dict):
     file_id = file_dict['id']
     
     with dx.open_dxfile(file_id, mode='r') as dx_file:
-        # Read TSV to pandas df
+       #Read TSV to pandas df
         data = pd.read_csv(
-            dx_file, sep='\t', header=None, names=list(range(11))
+           dx_file, sep='\t', header=None, names=list(range(11))
         )
-        # Get indexes of section of TSV we want
+        #Get indexes of section of TSV we want
         start_string = 'DNA Sample ID'
         idx_start = data.index[data[0] == start_string][0]
         end_string = '[Gene Amplifications]'
         idx_end = data.index[data[0] == end_string][0]
 
-        # Subset df to just those columns and first two columns
+        #Subset df to just those columns and first two columns
         msi_tmb = data.loc[idx_start : idx_end-1][[0, 1]]
-       
-        # Change column names to the Metric and value associated
+        #Change column names to the Metric and value associated
         msi_tmb.columns = ['Metric', 'Value']
-
         #msi_tmb.reset_index(drop=True, inplace=True)
 
         #insert random column numbered
@@ -215,14 +216,16 @@ def concurrent_read_tsv(list_of_file_dicts, workers):
     Parameters
     ----------
     list_of_file_dicts : list
-        list of dicts, each dict containing info on a CombinedVariantOutput file
+        list of dicts, each dict containing info on a 
+        CombinedVariantOutput file
     workers : int
         Number of workers
 
     Returns
     -------
     single_df : pd.DataFrame
-        single df with the gene amplification data from all samples
+        single df with the gene 
+        amplification data from all samples
     """
     list_of_dfs = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
@@ -239,7 +242,7 @@ def concurrent_read_tsv(list_of_file_dicts, workers):
                 print(
                     f"Error reading file for {concurrent_jobs[future]}: {exc}"
                 )
-    # Concat all the dfs in the list to one
+    #Concat all the dfs in the list to one
     single_df = pd.concat(list_of_dfs)
 
     return single_df
@@ -263,7 +266,7 @@ def main():
     #print archived files, unarchive them and get status
     if archived_files:
         print(
-              f"{len(archived_files)} files are still archived. Calling "
+            f"{len(archived_files)}files are still archived. Calling "
             "unarchive on them and exiting. Please re-run later when files are"
             "unarchived"
         )
@@ -274,55 +277,46 @@ def main():
 
     #create df with selected info from all files
     all_samples_gene_df = concurrent_read_tsv(combined_var_files, 12)
-    
     #drop duplicates from transposing - keep first to act as column
     all_samples_gene_df = all_samples_gene_df.drop_duplicates(keep='first')
-
-   
-
-
-
-    ##get rid of metrics that are not important
+    #get rid of metrics that are not important
     all_samples_gene_df = all_samples_gene_df.iloc[:, [0,8,20,21,22,25,26,27]] 
-
     #drop rows that are empty
     all_samples_gene_df.dropna(inplace = True) 
-
     #save df into csv file
     all_samples_gene_df.to_csv('TSO500_TMB_MSI_all.csv', index=False, header=False)
     
-   
+
 if __name__ == "__main__":
     main()
 
 
 #Get final matches between helpdesk samples and all obtained
- 
 #get samples from helpdesk and name column
 #copied from helpdesk to a excel - removed SP with sed 
 helpdesk_table = pd.read_csv('helpdesklist_nosp.csv', sep=',')
 helpdesk_table.columns = (['sample'])
 
-#read older samples
+#read samples
 all_samples = pd.read_csv('TSO500_TMB_MSI_all.csv', sep=',')
 
 #convert sample name
 all_samples['sample_name'] = all_samples["DNA Sample ID"].str.split('-').str[1]
 
-
-# Initialize an empty list to store matching sample names
+#Initialize an empty list to store matching sample names
 matching_samples = []
 
-# Iterate over each sample_name in all_samples_gene_older
+#Iterate over each sample_name in all_samples
 for i in all_samples['sample_name']:
-    # Iterate over each sample in helpdesk_table
+    #Iterate over each sample in helpdesk_table
     for l in helpdesk_table['sample']:
-        # Convert l and i to strings before stripping
+        #Convert l and i to strings before stripping
         l_str = str(l)
         i_str = str(i)
-        # Check if the stripped versions of l and i are equal
+        #Check if the stripped versions of l and i are equal
         if l_str.strip() == i_str.strip():
-            # If a match is found, append the sample name to the list and break the loop
+            #If a match is found, append the sample name 
+            # to the list and break the loop
             matching_samples.append(i)
             print('true')
             break  
@@ -330,12 +324,10 @@ for i in all_samples['sample_name']:
     
         print('')  
 
-# Filter all_samples_gene_older based on matching sample names
+#Filter all_samples based on matching sample names
 results = all_samples[all_samples["sample_name"].isin(matching_samples)]
-
-#save matches to csv
+#save matches and all to csv
 results.iloc[:,1:].to_csv('TSO500_TMB_MSI_matches.csv', index=False)
-
 all_samples.iloc[:,1:].to_csv('TSO500_TMB_MSI_final.csv', index=False)
 
 
