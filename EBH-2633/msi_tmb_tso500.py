@@ -57,6 +57,9 @@ def get_name_of_TSO_folder(project_id):
             recurse=False
         )
     )
+     #Check if there is only one run in the project 
+    if len(folder_names) > 1:
+        print(f"Warning: more than one folder found for project {project_id}")
 
     #Get the actual string of the folder name from the list
     #and remove /output/ from the beginning of the string to just get the
@@ -102,7 +105,6 @@ def get_combinedvariantoutput_files(project_id, folder_name):
             }
         )
     )
-
     #Get only these fields in a simple dict for easier querying later
     #and to make the merged list of the hundreds of files slightly
     #smaller later
@@ -175,35 +177,26 @@ def read_to_df(file_dict):
     file_id = file_dict['id']
     
     with dx.open_dxfile(file_id, mode='r') as dx_file:
-       #Read TSV to pandas df
+        # Read TSV to pandas df
         data = pd.read_csv(
-           dx_file, sep='\t', header=None, names=list(range(11))
+            dx_file, sep='\t', header=None, names=list(range(11))
         )
-        #Get indexes of section of TSV we want
+        # Get indexes of section of TSV we want
         start_string = 'DNA Sample ID'
         idx_start = data.index[data[0] == start_string][0]
         end_string = '[Gene Amplifications]'
         idx_end = data.index[data[0] == end_string][0]
 
-        #Subset df to just those columns and first two columns
+        # Subset df to just those columns and first two columns
         msi_tmb = data.loc[idx_start : idx_end-1][[0, 1]]
-        #Change column names to the Metric and value associated
+        # Change column names to the Metric and value associated
         msi_tmb.columns = ['Metric', 'Value']
-        #msi_tmb.reset_index(drop=True, inplace=True)
-
         #insert random column numbered
         #to make transpose easier as columns need different names
         #remove later
         msi_tmb.insert(0, 'to_remove', range(1, 1 + len(msi_tmb)))
-
         #create new df with transposed data
-        #new = msi_tmb.iloc[:,1:].transpose()
         new = msi_tmb.set_index('to_remove').T
-        #new = msi_tmb.T
-        #columns for new df 
-        #new.columns = msi_tmb['to_remove']
-
-        #new.dropna(subset=[new.columns[2]])
 
     return new
 
@@ -285,49 +278,47 @@ def main():
     all_samples_gene_df.dropna(inplace = True) 
     #save df into csv file
     all_samples_gene_df.to_csv('TSO500_TMB_MSI_all.csv', index=False, header=False)
-    
 
+        #Get final matches between helpdesk samples and all obtained
+    #get samples from helpdesk and name column
+    #copied from helpdesk to a excel - removed SP with sed 
+    helpdesk_table = pd.read_csv('helpdesklist_nosp.csv', sep=',')
+    helpdesk_table.columns = (['sample'])
+
+    #read samples
+    all_samples = pd.read_csv('TSO500_TMB_MSI_all.csv', sep=',')
+
+    #convert sample name
+    all_samples['sample_name'] = all_samples["DNA Sample ID"].str.split('-').str[1]
+
+    #Initialize an empty list to store matching sample names
+    matching_samples = []
+
+    #Iterate over each sample_name in all_samples
+    for i in all_samples['sample_name']:
+        #Iterate over each sample in helpdesk_table
+        for l in helpdesk_table['sample']:
+            #Convert l and i to strings before stripping
+            l_str = str(l)
+            i_str = str(i)
+            #Check if the stripped versions of l and i are equal
+            if l_str.strip() == i_str.strip():
+                #If a match is found, append the sample name 
+                # to the list and break the loop
+                matching_samples.append(i)
+                print('true')
+                break  
+        else:
+        
+            print('')  
+
+    #Filter all_samples based on matching sample names
+    results = all_samples[all_samples["sample_name"].isin(matching_samples)]
+    #save matches and all to csv
+    results.iloc[:,1:].to_csv('TSO500_TMB_MSI_matches.csv', index=False)
+    all_samples.iloc[:,1:].to_csv('TSO500_TMB_MSI_final.csv', index=False)
+        
 if __name__ == "__main__":
     main()
-
-
-#Get final matches between helpdesk samples and all obtained
-#get samples from helpdesk and name column
-#copied from helpdesk to a excel - removed SP with sed 
-helpdesk_table = pd.read_csv('helpdesklist_nosp.csv', sep=',')
-helpdesk_table.columns = (['sample'])
-
-#read samples
-all_samples = pd.read_csv('TSO500_TMB_MSI_all.csv', sep=',')
-
-#convert sample name
-all_samples['sample_name'] = all_samples["DNA Sample ID"].str.split('-').str[1]
-
-#Initialize an empty list to store matching sample names
-matching_samples = []
-
-#Iterate over each sample_name in all_samples
-for i in all_samples['sample_name']:
-    #Iterate over each sample in helpdesk_table
-    for l in helpdesk_table['sample']:
-        #Convert l and i to strings before stripping
-        l_str = str(l)
-        i_str = str(i)
-        #Check if the stripped versions of l and i are equal
-        if l_str.strip() == i_str.strip():
-            #If a match is found, append the sample name 
-            # to the list and break the loop
-            matching_samples.append(i)
-            print('true')
-            break  
-    else:
-    
-        print('')  
-
-#Filter all_samples based on matching sample names
-results = all_samples[all_samples["sample_name"].isin(matching_samples)]
-#save matches and all to csv
-results.iloc[:,1:].to_csv('TSO500_TMB_MSI_matches.csv', index=False)
-all_samples.iloc[:,1:].to_csv('TSO500_TMB_MSI_final.csv', index=False)
 
 
