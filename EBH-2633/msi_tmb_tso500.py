@@ -57,16 +57,28 @@ def get_name_of_TSO_folder(project_id):
             recurse=False
         )
     )
-     #Check if there is only one run in the project 
+    #Check if there is only one run in the project and get that folder name
+    folder_name = []
+    #in case there is only one run get that folder name (without path)
+    if len(folder_names) == 1:
+        folder_name = folder_names[0].removeprefix('/output/')
+    #if more get the one with reports workflow
     if len(folder_names) > 1:
         print(f"Warning: more than one folder found for project {project_id}")
-
-    #Get the actual string of the folder name from the list
-    #and remove /output/ from the beginning of the string to just get the
-    #name of the single folder, rather than path
-    folder_name = [
-        name.removeprefix('/output/') for name in folder_names
-    ][0]
+        for folder in folder_names:
+            #list subfolders in each project
+            sub_folders = list(
+                dx.bindings.dxfile_functions.list_subfolders(
+                project=project_id,
+                path=folder,
+                recurse=False
+                )
+            ) 
+            #check for all the runs and get the one with the reports folder
+            for sub_folder in sub_folders:
+                if "TSO500_reports_" in sub_folder:
+                    #get only the folder with date name
+                    folder_name = sub_folder.split('/')[2]
 
     return folder_name
 
