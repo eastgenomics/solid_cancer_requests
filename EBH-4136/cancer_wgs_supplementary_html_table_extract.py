@@ -26,11 +26,10 @@ def select_tables(
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Splits list of tables by the first 4 which contain patient / case info
-    and the table with germline / tumour sequencing quality info.
+    and the 5th table with germline / tumour sequencing quality info.
 
     The first 4 tables have one row each and columns are concatenated to
-    a single df, the other will contain a row for both germline and
-    tumour info
+    a single df, the other will contain a row for germline and tumour info.
 
     Parameters
     ----------
