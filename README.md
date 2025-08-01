@@ -1,8 +1,5 @@
 # solid_cancer_service
-Repository for code related to small tasks / validation work for supporting solid cancer service
-
- -
-[EBH-4136](https://cuhbioinformatics.atlassian.net/browse/EBH-4136) Re
+Repository for code related to small tasks / validation work for supporting solid cancer service.
 
 |  Ticket   |   Summary   |
 |   ---     |     ---     |
