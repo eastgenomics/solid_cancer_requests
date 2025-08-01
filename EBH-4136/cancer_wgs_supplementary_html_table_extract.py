@@ -1,0 +1,138 @@
+import argparse
+from datetime import datetime
+from pathlib import Path
+from typing import List, Tuple
+
+import pandas as pd
+
+
+def extract_tables(file: Path) -> List[pd.DataFrame]:
+    """
+    Parameters
+    ----------
+    file : pathlib.Path
+        Path to file to read from
+
+    Returns
+    -------
+    List[pd.DataFrame]
+        List of dataframes read from file
+    """
+    return pd.read_html(file)
+
+
+def select_tables(
+    tables: List[pd.DataFrame],
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Splits list of tables by the first 4 which contain patient / case info
+    and the table with germline / tumour sequencing quality info.
+
+    The first 4 tables have one row each and columns are concatenated to
+    a single df, the other will contain a row for both germline and
+    tumour info
+
+    Parameters
+    ----------
+    tables : list
+        List of dataframes read from HTML
+
+    Returns
+    -------
+    pd.DataFrame
+        Single row DataFrame of columns from first 4 tables
+    pd.DataFrame
+        2 row DataFrame from fifth table in HTML
+    """
+    sample_tables = pd.concat(tables[:4], axis=1)
+    qual_table = tables[4]
+    qual_table.insert(
+        0, "Referral ID", [sample_tables.iloc[0]["Referral ID"]] * 2
+    )
+
+    return sample_tables, qual_table
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--paths",
+        help="path(s) to search for supplementary HTMLs within",
+        required=True,
+        nargs="+",
+    )
+    args = parser.parse_args()
+
+    all_file_paths = {}
+    duplicate_files = {}
+
+    total_htmls_found = 0
+
+    for path in args.paths:
+        files = list(Path(path).rglob("*.supplementary.html"))
+        print(f"Found {len(files)} in {path}")
+
+        for html in files:
+            total_htmls_found += 1
+
+            if html.name in all_file_paths:
+                print(
+                    f"Warning: {html.name} already found at"
+                    f" {all_file_paths[html.name]}, skipping..."
+                )
+                duplicate_files[html.name] = html.resolve().parent
+            else:
+                all_file_paths[html.name] = html.resolve().parent
+
+    print(
+        f"Found {len(all_file_paths)} unique HTML files\nIgnored"
+        f" {len(duplicate_files)} duplicate files in different locations"
+    )
+
+    sample_detail_dfs = []
+    germline_tumour_quality_dfs = []
+    error_files = []
+
+    for idx, file in enumerate(all_file_paths.items(), 1):
+        print(f"[{idx}/{len(all_file_paths)}] {file[0]}")
+
+        try:
+            tables = extract_tables(file[1] / Path(file[0]))
+            sample_tables_df, qual_table_df = select_tables(tables)
+
+            sample_detail_dfs.append(sample_tables_df)
+            germline_tumour_quality_dfs.append(qual_table_df)
+        except Exception as exc:
+            print(f"Error processing {file}: {exc}")
+            error_files.append(file)
+
+    all_sample_details_df = pd.concat(sample_detail_dfs)
+    all_germline_tumour_quality_dfs = pd.concat(germline_tumour_quality_dfs)
+
+    print(all_sample_details_df)
+    print(all_germline_tumour_quality_dfs)
+
+    now = datetime.now().strftime("%Y%m%d_%H%M")
+    all_sample_details_df.to_csv(
+        f"cancer_wgs_html_extract_sample_details_{now}.tsv", sep="\t"
+    )
+    all_germline_tumour_quality_dfs.to_csv(
+        f"cancer_wgs_html_extract_germline_tumour_quality_{now}.tsv", sep="\t"
+    )
+
+    with open("cancer_wgs_html_extract_extracted_files.txt", "w") as fh:
+        for file, path in all_file_paths.items():
+            fh.write(f"{path}/{file}\n")
+
+    if duplicate_files:
+        with open("cancer_wgs_html_extract_duplicate_files.txt", "w") as fh:
+            for file, path in duplicate_files.items():
+                fh.write(f"{path}/{file}\n")
+
+    if error_files:
+        errors = "\n\t".join(error_files)
+        print(f"{len(error_files)} files failed to be read from:{errors}")
+
+
+if __name__ == "__main__":
+    main()
