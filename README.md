@@ -1,4 +1,4 @@
-# solid_cancer_service
+# Solid Cancer Requests
 Repository for code related to small tasks / validation work for supporting solid cancer service.
 
 |  Ticket   |   Summary   |
