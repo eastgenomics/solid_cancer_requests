@@ -1,3 +1,13 @@
+"""
+Script to parse tables from the cancer WGS supplementary HTML files.
+
+Aggregates the top 4 case information tables to a single row per case
+(~30 columns) and the 5th table of germline and tumour info which are then
+written to separate TSV files. Initial ask of this was to quantify some
+metrics across a large number of WGS cases we have analysed (i.e turn
+around times, tumour QC metrics etc.)
+"""
+
 import argparse
 from datetime import datetime
 from functools import reduce
