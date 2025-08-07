@@ -55,6 +55,9 @@ def select_tables(
     pd.DataFrame
         Two row DataFrame from fifth table in HTML
     """
+    if len(tables) < 5:
+        raise ValueError(f"Expected at least 5 tables, got {len(tables)}")
+
     # join data from first 4 tables, ensure no duplicate columns names
     # by adding .1 suffix (i.e where sample ID is in 2 tables)
     sample_tables = reduce(
@@ -71,6 +74,7 @@ def select_tables(
 
     # add in case / sample identifiers to keep unique rows per file later
     qual_table = tables[4]
+
     qual_table.insert(
         0, "Referral ID", [sample_tables.iloc[0]["Referral ID"]] * 2
     )
@@ -106,7 +110,10 @@ def main():
     total_htmls_found = 0
 
     for path in args.paths:
-        assert Path(path).is_dir()
+        if not Path(path).is_dir():
+            raise ValueError(
+                f"Path does not exist or is not a directory: {path}"
+            )
 
         files = list(Path(path).rglob("*.supplementary.html"))
         print(f"Found {len(files)} in {path}")
@@ -197,7 +204,7 @@ def main():
                 fh.write(f"{path}/{file}\n")
 
     if error_files:
-        errors = "\n\t".join(error_files)
+        errors = "\n\t".join([f"{file[1]}/{file[0]}" for file in error_files])
         print(f"{len(error_files)} files failed to be read from:{errors}")
 
 
