@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from functools import reduce
 from pathlib import Path
 from typing import List, Tuple
 
@@ -43,10 +44,30 @@ def select_tables(
     pd.DataFrame
         2 row DataFrame from fifth table in HTML
     """
-    sample_tables = pd.concat(tables[:4], axis=1)
+    # join data from first 4 tables, ensure no duplicate columns names
+    # by adding .1 suffix (i.e where sample ID is in 2 tables)
+    sample_tables = reduce(
+        lambda left, right: pd.merge(
+            left,
+            right,
+            how="inner",
+            suffixes=[None, ".1"],
+            left_index=True,
+            right_index=True,
+        ),
+        tables[:4],
+    )
+
     qual_table = tables[4]
     qual_table.insert(
         0, "Referral ID", [sample_tables.iloc[0]["Referral ID"]] * 2
+    )
+    qual_table.insert(
+        1, "Patient ID", [sample_tables.iloc[0]["Patient ID"]] * 2
+    )
+    qual_table.insert(2, "Sample ID", [sample_tables.iloc[0]["Sample ID"]] * 2)
+    qual_table.insert(
+        3, "Sample ID.1", [sample_tables.iloc[0]["Sample ID.1"]] * 2
     )
 
     return sample_tables, qual_table
@@ -68,6 +89,8 @@ def main():
     total_htmls_found = 0
 
     for path in args.paths:
+        assert Path(path).is_dir()
+
         files = list(Path(path).rglob("*.supplementary.html"))
         print(f"Found {len(files)} in {path}")
 
@@ -82,11 +105,6 @@ def main():
                 duplicate_files[html.name] = html.resolve().parent
             else:
                 all_file_paths[html.name] = html.resolve().parent
-
-    print(
-        f"Found {len(all_file_paths)} unique HTML files\nIgnored"
-        f" {len(duplicate_files)} duplicate files in different locations"
-    )
 
     sample_detail_dfs = []
     germline_tumour_quality_dfs = []
@@ -105,18 +123,51 @@ def main():
             print(f"Error processing {file}: {exc}")
             error_files.append(file)
 
-    all_sample_details_df = pd.concat(sample_detail_dfs)
-    all_germline_tumour_quality_dfs = pd.concat(germline_tumour_quality_dfs)
+    all_sample_details_df = pd.concat(
+        sample_detail_dfs, ignore_index=True, sort=False
+    )
+    all_germline_tumour_quality_dfs = pd.concat(
+        germline_tumour_quality_dfs, ignore_index=True, sort=False
+    )
 
     print(all_sample_details_df)
     print(all_germline_tumour_quality_dfs)
 
+    print(f"Total sample detail rows: {len(all_sample_details_df)}")
+    print(
+        "Total germline / tumour quality rows:"
+        f" {len(all_germline_tumour_quality_dfs)}"
+    )
+
+    all_sample_details_df = all_sample_details_df.drop_duplicates()
+    all_germline_tumour_quality_dfs = (
+        all_germline_tumour_quality_dfs.drop_duplicates()
+    )
+
+    print(
+        "Total sample detail rows after dropping duplicates:"
+        f" {len(all_sample_details_df)}"
+    )
+    print(
+        "Total germline / tumour quality rows after dropping duplicates:"
+        f" {len(all_germline_tumour_quality_dfs)}"
+    )
+
     now = datetime.now().strftime("%Y%m%d_%H%M")
     all_sample_details_df.to_csv(
-        f"cancer_wgs_html_extract_sample_details_{now}.tsv", sep="\t"
+        f"cancer_wgs_html_extract_sample_details_{now}.tsv",
+        sep="\t",
+        index=False,
     )
     all_germline_tumour_quality_dfs.to_csv(
-        f"cancer_wgs_html_extract_germline_tumour_quality_{now}.tsv", sep="\t"
+        f"cancer_wgs_html_extract_germline_tumour_quality_{now}.tsv",
+        sep="\t",
+        index=False,
+    )
+
+    print(
+        f"Found {len(all_file_paths)} unique HTML files\nIgnored"
+        f" {len(duplicate_files)} duplicate files in different locations"
     )
 
     with open("cancer_wgs_html_extract_extracted_files.txt", "w") as fh:
