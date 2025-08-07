@@ -30,7 +30,8 @@ def select_tables(
     and the 5th table with germline / tumour sequencing quality info.
 
     The first 4 tables have one row each and columns are concatenated to
-    a single df, the other will contain a row for germline and tumour info.
+    a single df, the other will contain one row each for germline and
+    tumour info.
 
     Parameters
     ----------
@@ -42,7 +43,7 @@ def select_tables(
     pd.DataFrame
         Single row DataFrame of columns from first 4 tables
     pd.DataFrame
-        2 row DataFrame from fifth table in HTML
+        Two row DataFrame from fifth table in HTML
     """
     # join data from first 4 tables, ensure no duplicate columns names
     # by adding .1 suffix (i.e where sample ID is in 2 tables)
