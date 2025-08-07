@@ -58,6 +58,7 @@ def select_tables(
         tables[:4],
     )
 
+    # add in case / sample identifiers to keep unique rows per file later
     qual_table = tables[4]
     qual_table.insert(
         0, "Referral ID", [sample_tables.iloc[0]["Referral ID"]] * 2
@@ -65,9 +66,14 @@ def select_tables(
     qual_table.insert(
         1, "Patient ID", [sample_tables.iloc[0]["Patient ID"]] * 2
     )
-    qual_table.insert(2, "Sample ID", [sample_tables.iloc[0]["Sample ID"]] * 2)
     qual_table.insert(
-        3, "Sample ID.1", [sample_tables.iloc[0]["Sample ID.1"]] * 2
+        1,
+        "Histopathology or SIHMDS LAB ID",
+        [sample_tables.iloc[0]["Histopathology or SIHMDS LAB ID"]] * 2,
+    )
+    qual_table.insert(3, "Sample ID", [sample_tables.iloc[0]["Sample ID"]] * 2)
+    qual_table.insert(
+        4, "Sample ID.1", [sample_tables.iloc[0]["Sample ID.1"]] * 2
     )
 
     return sample_tables, qual_table
