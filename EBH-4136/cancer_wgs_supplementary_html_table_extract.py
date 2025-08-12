@@ -72,24 +72,19 @@ def select_tables(
         tables[:4],
     )
 
-    # add in case / sample identifiers to keep unique rows per file later
     qual_table = tables[4]
 
-    qual_table.insert(
-        0, "Referral ID", [sample_tables.iloc[0]["Referral ID"]] * 2
-    )
-    qual_table.insert(
-        1, "Patient ID", [sample_tables.iloc[0]["Patient ID"]] * 2
-    )
-    qual_table.insert(
-        1,
-        "Histopathology or SIHMDS LAB ID",
-        [sample_tables.iloc[0]["Histopathology or SIHMDS LAB ID"]] * 2,
-    )
-    qual_table.insert(3, "Sample ID", [sample_tables.iloc[0]["Sample ID"]] * 2)
-    qual_table.insert(
-        4, "Sample ID.1", [sample_tables.iloc[0]["Sample ID.1"]] * 2
-    )
+    # add case / sample identifiers to keep unique rows per file later
+    columns_to_add = {
+        0: "Referral ID",
+        1: "Patient ID",
+        2: "Histopathology or SIHMDS LAB ID",
+        3: "Sample ID",
+        4: "Sample ID.1",
+    }
+
+    for position, name in columns_to_add.items():
+        qual_table.insert(position, name, [sample_tables.iloc[0][name]] * 2)
 
     return sample_tables, qual_table
 
@@ -107,8 +102,6 @@ def main():
     all_file_paths = {}
     duplicate_files = {}
 
-    total_htmls_found = 0
-
     for path in args.paths:
         if not Path(path).is_dir():
             raise ValueError(
@@ -119,8 +112,6 @@ def main():
         print(f"Found {len(files)} in {path}")
 
         for html in files:
-            total_htmls_found += 1
-
             if html.name in all_file_paths:
                 print(
                     f"Warning: {html.name} already found at"
