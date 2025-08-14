@@ -5,10 +5,12 @@ Requires setting a location to download files to (`download_dir`) and path
 to chrome driver (`chrome_driver`) downloaded from https://googlechromelabs.github.io/chrome-for-testing/.
 The chrome driver version needs to match the version of chrome installed.
 
-The genes to grab data for is also just hardcoded below in the `genes` list.
+Genes to download data for should be provided as input in a single column file
+with one gene symbol per row.
 """
 
 from pathlib import Path
+import sys
 import time
 
 from selenium import webdriver
@@ -21,7 +23,8 @@ import undetected_chromedriver as uc
 download_dir = "/home/jethro/Projects/solid_cancer_requests/files/"
 chrome_driver = "/home/jethro/Projects/solid_cancer_requests/chromedriver-linux64/chromedriver"
 
-genes = ["BRAF", "ABL1", "ARID1A"]
+with open(sys.argv[1]) as fh:
+    genes = fh.read().splitlines()
 
 options = uc.ChromeOptions()
 options.add_experimental_option(
