@@ -48,42 +48,54 @@ driver.get(login_url)
 # only needs doing once
 input("Press any key after logging in and page has loaded")
 
+failed = []
+
 for idx, gene in enumerate(genes, 1):
     print(f"[{idx}/{len(genes)}] Loading page for {gene}")
 
-    target_url = (
-        "https://genie.cbioportal.org/results/mutations?cancer_study_list=genie_public&"
-        "Z_SCORE_THRESHOLD=2.0&RPPA_SCORE_THRESHOLD=2.0&profileFilter=mutations%2Cstructural_variants"
-        f"%2Ccna&case_set_id=genie_public_cnaseq&gene_list={gene}&geneset_list=%20&tab_index=tab_visualize&Action=Submit"
-    )
+    try:
+        target_url = (
+            "https://genie.cbioportal.org/results/mutations?cancer_study_list=genie_public&"
+            "Z_SCORE_THRESHOLD=2.0&RPPA_SCORE_THRESHOLD=2.0&profileFilter=mutations%2Cstructural_variants"
+            f"%2Ccna&case_set_id=genie_public_cnaseq&gene_list={gene}&geneset_list=%20&tab_index=tab_visualize&Action=Submit"
+        )
 
-    driver.get(target_url)
+        driver.get(target_url)
 
-    wait = WebDriverWait(driver, 300)  # set long timeout since page is slow
+        wait = WebDriverWait(
+            driver, 300
+        )  # set long timeout since page is slow to load
 
-    # find the download button in the page
-    download_button = wait.until(
-        EC.element_to_be_clickable(
-            (
-                By.XPATH,
-                "//button[@aria-label='Download TSV']",
+        # find the download button in the page
+        download_button = wait.until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    "//button[@aria-label='Download TSV']",
+                )
             )
         )
-    )
-    download_button.click()
+        download_button.click()
 
-    print(f"Downloading {gene} data, waiting until complete...")
+        print(f"Downloading {gene} data, waiting until complete...")
 
-    downloaded_file = Path(Path.cwd() / "files/table.tsv")
+        downloaded_file = Path(Path.cwd() / "files/table.tsv")
 
-    while not downloaded_file.exists():
-        time.sleep(1)
+        while not downloaded_file.exists():
+            time.sleep(1)
 
-    rename_file = Path(downloaded_file.parent, f"{gene}.tsv")
-    downloaded_file.rename(rename_file)
+        rename_file = Path(downloaded_file.parent, f"{gene}.tsv")
+        downloaded_file.rename(rename_file)
 
-    print(f"Downloaded data to {str(rename_file)}")
+        print(f"Downloaded data to {str(rename_file)}")
+    except Exception as err:
+        print(f"Error getting data for {gene}: {err}")
+        failed.append(f"{gene} - {err}")
 
 print(f"Downloaded data for {len(genes)} genes")
+
+if failed:
+    failed = "\n\t".join(failed)
+    print(f"Warning: failed to get data for {len(genes)} genes.\n{failed}")
 
 driver.quit()
