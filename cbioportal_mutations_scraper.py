@@ -5,7 +5,7 @@ Requires setting a location to download files to (`download_dir`) and path
 to chrome driver (`chrome_driver`) downloaded from https://googlechromelabs.github.io/chrome-for-testing/.
 The chrome driver version needs to match the version of chrome installed.
 
-The genes to grab data for is also just hardcoded below in `genes`.
+The genes to grab data for is also just hardcoded below in the `genes` list.
 """
 
 from pathlib import Path
