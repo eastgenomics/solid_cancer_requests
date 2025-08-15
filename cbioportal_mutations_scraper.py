@@ -10,6 +10,7 @@ with one gene symbol per row.
 """
 
 from pathlib import Path
+import random
 import sys
 import time
 
@@ -75,6 +76,9 @@ for idx, gene in enumerate(genes, 1):
                 )
             )
         )
+
+        driver.get_screenshot_as_file(f"images/{gene}_screenshot.png")
+
         download_button.click()
 
         print(f"Downloading {gene} data, waiting until complete...")
@@ -88,6 +92,10 @@ for idx, gene in enumerate(genes, 1):
         downloaded_file.rename(rename_file)
 
         print(f"Downloaded data to {str(rename_file)}")
+
+        sleep_time = random.randint(1, 20)
+        print(f"Sleeping {sleep_time}s")
+        time.sleep(sleep_time)
     except Exception as err:
         print(f"Error getting data for {gene}: {err}")
         failed.append(f"{gene} - {err}")
@@ -95,7 +103,10 @@ for idx, gene in enumerate(genes, 1):
 print(f"Downloaded data for {len(genes)} genes")
 
 if failed:
+    total_failed = len(failed)
     failed = "\n\t".join(failed)
-    print(f"Warning: failed to get data for {len(genes)} genes.\n{failed}")
+    print(
+        f"Warning: failed to get data for {len(total_failed)} genes.\n{failed}"
+    )
 
 driver.quit()
