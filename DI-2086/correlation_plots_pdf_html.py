@@ -87,12 +87,26 @@ def create_interactive_correlation_plot(csv_file):
         print("Checking customdata order:")
         print("hover_data keys:", list(df.columns))
         
+        # Define custom colour mapping
+        color_discrete_map = {
+            'No change PASS': "#00CC96",
+            'No change EXCLUDE': "#636EFA",
+            'Change from PASS to EXCLUDE': "#FFA15A",
+            'Change from EXCLUDE to PASS': "#FECB52",
+            'Variant removed PASS': "#EF553B",
+            'Variant removed EXCLUDE': "#19D3F3",
+            'Variant added PASS': '#FF6692',
+            'Variant added EXCLUDE': "#AB63FA",
+            'Unknown': '#696969'
+        }
+        
         # Create interactive scatter plot
         sample = df['sample'][0]
         fig = px.scatter(df,
                          x='VAF_s1',
                          y='VAF_s2',
                          color='FILTER_change',
+                         color_discrete_map=color_discrete_map,
                          hover_data={
                              'CHROM': True,
                              'POS': True,
