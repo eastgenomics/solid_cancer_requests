@@ -79,7 +79,7 @@ def extract_variant_data_df(vcf_path):
                 "bcftools",
                 "query",
                 "-f",
-                "'%CHROM\t%POS\t%REF\t%ALT\t%DP\t[%VF]\t%FILTER\n'",
+                "'%CHROM\t%POS\t%REF\t%ALT\t[%DP]\t[%VF]\t%FILTER\n'",
                 vcf_path
             ],
             capture_output=True,

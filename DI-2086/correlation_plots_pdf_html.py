@@ -109,8 +109,8 @@ def create_interactive_correlation_plot(csv_file):
     """
     try:
         # Read the CSV file
-        df = pd.read_csv(csv_file)
-        df = add_filter_column_change(df)
+        records_df = pd.read_csv(csv_file)
+        df = add_filter_column_change(records_df)
 
         print("The unique values for FILTER_truth",
               df['FILTER_truth'].unique())
@@ -252,8 +252,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate .html and .pdf from the sample.merged.csv files"
     )
-    parser.add_argument("--feature_file", help="Input feature .merged.csv file")
-    parser.add_argument("--output", help="Output filepath, no need to specify .pdf or .html")
+    parser.add_argument("--feature_file",
+                        help="Input feature .merged.csv file")
+    parser.add_argument("--output",
+                        help="Output filepath, no need to specify .pdf or .html")
     args = parser.parse_args()
     
     return args
