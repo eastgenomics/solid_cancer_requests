@@ -11,9 +11,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from io import StringIO
 
-dxfile = dxpy.DXFile('file-J24FXZQ48fFz1gb8J1Jxg1Vq').read()
-type(dxfile)
-df = pd.read_csv(StringIO(dxfile))
 
 # Select the project
 project = "project-J1zbgv84kZ75y8B1vzXv6X2v"
