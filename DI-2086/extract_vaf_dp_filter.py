@@ -150,7 +150,7 @@ def merge_records_to_query_truth(records_df, query_data_df, truth_data_df):
         'DP_query': 0,
         'DP_truth': 0,
         'VAF_query':0.0,
-        'VAF_truth':0
+        'VAF_truth':0.0
         }
     for col, default_val in nan_handling.items():
         if col in merge_df.columns:
