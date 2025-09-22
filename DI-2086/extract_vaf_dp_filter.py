@@ -5,7 +5,8 @@ import argparse
 
 def read_features_file(features_file, sample_name):
     """
-    Read a sompy features.csv file.
+    Read a sompy features.csv file and remove duplicate entries (duplicate variants
+    due to multiple annotations for more than one transcript)
 
     Parameters
     ----------
