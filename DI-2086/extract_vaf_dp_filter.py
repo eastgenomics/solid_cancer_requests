@@ -88,7 +88,7 @@ def extract_variant_data_df(vcf_path):
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] bcftools query failed: {e.stderr}")
+        raise RuntimeError(f"bcftools query failed: {e.stderr}") from e
     
     lines = result.stdout.strip().split("\n'")
     # Filter empty lines
