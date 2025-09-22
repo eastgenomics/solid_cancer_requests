@@ -29,27 +29,27 @@ stats_files = list(dxpy.find_data_objects(
 
 # For each sample
 shared_variants = []
-unique_to_S1 = []
-unique_to_S2 = []
+unique_to_truth = []
+unique_to_query = []
 for file in stats_files:
     print(file)
     dxfile = dxpy.DXFile(file['id']).read()
     df = pd.read_csv(StringIO(dxfile))
     # Count the number of shared variants (i.e. tp)
     shared_variants.append(df[df['type'] == 'records']['tp'].iloc[0])
-    # Count the number of variants found only in S2 (fp)
-    unique_to_S2.append(df[df['type'] == 'records']['fp'].iloc[0])
-    # Count the munber of variants found only in S1 (fn)
-    unique_to_S1.append(df[df['type'] == 'records']['fn'].iloc[0])
+    # Count the number of variants found only in query (fp)
+    unique_to_query.append(df[df['type'] == 'records']['fp'].iloc[0])
+    # Count the munber of variants found only in truth (fn)
+    unique_to_truth.append(df[df['type'] == 'records']['fn'].iloc[0])
 
-# Make a database with the columns (sample, shared, s1 only, s2 only)
+# Make a database with the columns (sample, shared, truth only, query only)
 stats_df = pd.DataFrame(
     [dxpy.describe(file['id'], fields={'name'}) for file in stats_files])
 stats_df['sample_name'] = stats_df['name'].str.extract(r'^(\d+-\d+[SQK]\d+)')
 stats_df['run'] = stats_df['name'].str.extract(r'(25TSOD\d{2})')
 stats_df['shared'] = shared_variants
-stats_df['S1 only'] = unique_to_S1
-stats_df['S2 only'] = unique_to_S2
+stats_df['truth only'] = unique_to_truth
+stats_df['query only'] = unique_to_query
 
 
 # Use the database to create a plot for each sequencing run
@@ -75,11 +75,11 @@ for i, run in enumerate(runs):
     # Create stacked bars
     p1 = ax.bar(range(len(run_data)), run_data['shared'],
                 label='Shared', color='steelblue')
-    p2 = ax.bar(range(len(run_data)), run_data['S1 only'],
-                bottom=run_data['shared'], label='S1 only', color='salmon')
-    p3 = ax.bar(range(len(run_data)), run_data['S2 only'],
-                bottom=run_data['shared'] + run_data['S1 only'],
-                label='S2 only', color='darkseagreen')
+    p2 = ax.bar(range(len(run_data)), run_data['truth only'],
+                bottom=run_data['shared'], label='truth only', color='salmon')
+    p3 = ax.bar(range(len(run_data)), run_data['query only'],
+                bottom=run_data['shared'] + run_data['truth only'],
+                label='query only', color='darkseagreen')
     
     ax.set_ylabel('Number of variants', fontsize=12)
     ax.set_xlabel('Sample', fontsize=12)
