@@ -14,7 +14,7 @@ import argparse
 
 
 def parse_args() -> argparse.Namespace:
-    
+
     parser = argparse.ArgumentParser(
         description="Generate barplots from a DNAnexus folderpath containing "
                     "sompy results")
@@ -22,9 +22,9 @@ def parse_args() -> argparse.Namespace:
                                              "are located")
     parser.add_argument("--folderpath", help="Folderpath of sompy results\t"
                                              "e.g.: /parentfolder/childfolder")
-    
+
     args = parser.parse_args()
-    
+
     return args
 
 def generate_barplots_from_DNAnexus_path(project_id, folderpath):
@@ -40,7 +40,7 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
     Returns:
         stats_df: pd.Dataframe with all the values of the barplots
     """
-    
+
     # Select list of files from a DNANexus path where stats.csv files are stored
     stats_files = list(dxpy.find_data_objects(
         classname="file",
@@ -103,7 +103,7 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
         p3 = ax.bar(range(len(run_data)), run_data['query only'],
                     bottom=run_data['shared'] + run_data['truth only'],
                     label='query only', color='darkseagreen')
-        
+
         ax.set_ylabel('Number of variants', fontsize=12)
         ax.set_xlabel('Sample', fontsize=12)
         ax.set_title(f'Number of variants per sample from {run} (n={len(run_data)})')
@@ -127,13 +127,13 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
         return stats_df
 
 def main():
-    
+
     args = parse_args()
-    
-    # Create the Dataframe and generapte plots 
+
+    # Create the Dataframe and generapte plots
     stats_df = generate_barplots_from_DNAnexus_path(args.project_id,
                                                     args.folderpath)
-    
+
     # Save the Dataframe in a .csv file
     stats_df.to_csv('sompy_plots_table.csv')
     print("File output stored in sompy_plots_table.csv")
