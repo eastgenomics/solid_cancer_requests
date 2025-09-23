@@ -107,19 +107,25 @@ def create_interactive_correlation_plot(csv_file, output_path):
     try:
         # Read the CSV file
         records_df = pd.read_csv(csv_file)
+
+        # Check if required columns exist
+        required_cols = [
+            "CHROM", "POS", "REF", "REF.truth", "ALT", "ALT.truth",
+            "DP_truth", "DP_query", "FILTER_query", "FILTER_truth",
+            "VAF_truth", "VAF_query", "sample"
+        ]
+        missing_cols = [
+            col for col in required_cols if col not in records_df.columns
+            ]
+
+        if missing_cols:
+            print(f"Available columns: {list(records_df.columns)}")
+            raise ValueError(f"Missing columns: {missing_cols}")
+
         df = add_filter_column_change(records_df)
 
         print("The unique values for FILTER_truth", df["FILTER_truth"].unique())
         print("The unique values for FILTER_query", df["FILTER_query"].unique())
-
-        # Check if required columns exist
-        required_cols = ["VAF_truth", "VAF_query", "QUAL.truth", "CHROM"]
-        missing_cols = [col for col in required_cols if col not in df.columns]
-
-        if missing_cols:
-            print(f"Error: Missing columns: {missing_cols}")
-            print(f"Available columns: {list(df.columns)}")
-            return
 
         # Calculate correlation
         correlation = df["VAF_truth"].corr(df["VAF_query"])
