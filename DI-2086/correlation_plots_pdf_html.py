@@ -204,7 +204,7 @@ def create_interactive_correlation_plot(csv_file, output_path):
                 y=[min_val, max_val],
                 mode="lines",
                 line=dict(dash="dash", color="red", width=1),
-                name="Pearson Correlation line",
+                name="y=x reference line",
                 hovertemplate="Reference line y=x<extra></extra>",
             )
         )
