@@ -22,26 +22,27 @@ def parse_args() -> argparse.Namespace:
                                              "are located")
     parser.add_argument("--folderpath", help="Folderpath of sompy results\t"
                                              "e.g.: /parentfolder/childfolder")
+    parser.add_argument("--output_path", help="Local path in which plots and "
+                                              ".csv table outputs are stored")
 
     args = parser.parse_args()
 
     return args
 
-def generate_barplots_from_DNAnexus_path(project_id, folderpath):
+def generate_stats_df_from_DNAnexus_path(project_id, folderpath, output_path):
     """
-    Generate the barplots using the .stats.csv files located in a specific
-    DNAnexus project_id:/folderpath. This generates a plot per sequencing run
-    but does not store plots in any file
+    Generate a dataframe using the .stats.csv files located in a specific
+    DNAnexus project_id:/folderpath.
 
     Args:
         project_id (str): project-id where all sompy results are stored
         folderpath (str): folderpath in where the .stats.csv
 
     Returns:
-        stats_df: pd.Dataframe with all the values of the barplots
+        stats_df: pd.Dataframe with all values of interest
     """
 
-    # Select list of files from a DNANexus path where stats.csv files are stored
+    # Select list of files from a DNANexus path where stats.csv files are kept
     stats_files = list(dxpy.find_data_objects(
         classname="file",
         name="*.stats.csv",
@@ -71,10 +72,24 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
     stats_df['sample_name'] = stats_df['name'].str.extract(r'^(\d+-\d+[SQK]\d+)')
     stats_df['run'] = stats_df['name'].str.extract(r'(25TSOD\d{2})')
     stats_df['shared'] = shared_variants
-    stats_df['truth only'] = unique_to_truth
-    stats_df['query only'] = unique_to_query
+    stats_df['truth_only'] = unique_to_truth
+    stats_df['query_only'] = unique_to_query
+
+    # Save stats_df into a csv file
+    stats_df.to_csv(f"{output_path}/sompy_plots_table.csv", index=False)
+
+    return stats_df
 
 
+def generate_plots_from_stats_df(stats_df, output_path):
+    """
+    Generates a plot per sequencing run found in the stats_df DataFrame.
+
+    Args:
+        stats_df (pd.DataFrame): DataFrame with the .stats.csv values
+                                 of all validation samples' sompy results
+        output_path (str): Path to save the generated plots .png
+    """
     # Use the database to create a plot for each sequencing run
     runs = stats_df['run'].unique()
 
@@ -93,28 +108,33 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
         fig, ax = plt.subplots(figsize=(fig_width, 8))
 
         # Sort data by shared variants for better visualization
-        run_data = run_data.sort_values('shared', ascending=False).reset_index(drop=True)
+        run_data = run_data.sort_values('shared',
+                                        ascending=False).reset_index(drop=True)
 
         # Create stacked bars
         p1 = ax.bar(range(len(run_data)), run_data['shared'],
                     label='Shared', color='steelblue')
-        p2 = ax.bar(range(len(run_data)), run_data['truth only'],
-                    bottom=run_data['shared'], label='truth only', color='salmon')
-        p3 = ax.bar(range(len(run_data)), run_data['query only'],
-                    bottom=run_data['shared'] + run_data['truth only'],
-                    label='query only', color='darkseagreen')
+        p2 = ax.bar(range(len(run_data)), run_data['truth_only'],
+                    bottom=run_data['shared'], label='truth_only',
+                    color='salmon')
+        p3 = ax.bar(range(len(run_data)), run_data['query_only'],
+                    bottom=run_data['shared'] + run_data['truth_only'],
+                    label='query_only', color='darkseagreen')
 
         ax.set_ylabel('Number of variants', fontsize=12)
         ax.set_xlabel('Sample', fontsize=12)
-        ax.set_title(f'Number of variants per sample from {run} (n={len(run_data)})')
+        ax.set_title(f'Number of variants per sample from {run} '
+                     f'(n={len(run_data)})')
 
         # Adjust x-axis labels based on number of samples
         ax.set_xticks(range(len(run_data)))
         if len(run_data) > 15:
-            ax.set_xticklabels(run_data['sample_name'], rotation=90, fontsize=8)
+            ax.set_xticklabels(run_data['sample_name'], rotation=90,
+                               fontsize=8)
         else:
             # Show all sample names for smaller runs
-            ax.set_xticklabels(run_data['sample_name'], rotation=45, fontsize=8, ha='right')
+            ax.set_xticklabels(run_data['sample_name'], rotation=45,
+                               fontsize=8, ha='right')
 
         # Add grid for better readability
         ax.grid(axis='y', alpha=0.3, linestyle='--')
@@ -123,20 +143,26 @@ def generate_barplots_from_DNAnexus_path(project_id, folderpath):
         ax.legend(loc='upper right', framealpha=0.9)
 
         plt.tight_layout()
-        plt.show()
-        return stats_df
+
+        # Save the plot to a file instead of showing it
+        output_filename = f"{output_path}/sompy_barplot_{run}.png"
+        plt.savefig(output_filename, dpi=300, bbox_inches='tight')
+        print(f"Plot saved: {output_filename}")
+
+        # Close the figure
+        plt.close(fig)
 
 def main():
 
     args = parse_args()
 
     # Create the Dataframe and generapte plots
-    stats_df = generate_barplots_from_DNAnexus_path(args.project_id,
-                                                    args.folderpath)
+    stats_df = generate_stats_df_from_DNAnexus_path(args.project_id,
+                                                    args.folderpath,
+                                                    args.output_path)
 
-    # Save the Dataframe in a .csv file
-    stats_df.to_csv('sompy_plots_table.csv')
-    print("File output stored in sompy_plots_table.csv")
+    # Generate the plots from the stats_df
+    generate_plots_from_stats_df(stats_df, args.output_path)
 
 
 if __name__ == "__main__":
