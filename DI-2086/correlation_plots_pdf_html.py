@@ -6,9 +6,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def add_filter_column_change(dataframe):
+def add_filter_column_change(merged_var_df):
     """
-    Add a filter change column to the df based on the following conditions:
+    Add a filter change column to the dataframe based on the following conditions:
     The new column 'FILTER_change' will indicate:
     - 'No change PASS' if both FILTER_truth and FILTER_query contain 'PASS'
     - 'No change EXCLUDE' if both FILTER_truth and FILTER_query are 'EXCLUDE'
@@ -30,41 +30,52 @@ def add_filter_column_change(dataframe):
       'rescued' and are not identical
 
     Args:
-        dataframe (pd.DataFrame): The input dataframe containing 'FILTER_truth'
-                                  and 'FILTER_query' columns.
+        merged_var_df (pd.DataFrame): The input dataframe containing 
+                                      'FILTER_truth' and 'FILTER_query'
+                                      columns.
 
     Returns:
-        dataframe (pd.DataFrame): The modified dataframe with the new 'FILTER_change'
-                      column.
+        pd.DataFrame: The modified dataframe with the new 'FILTER_change'
+                                           column.
     """
     # Set up all conditions
     conditions = [
-        (dataframe["FILTER_truth"].str.contains("PASS"))
-        & (dataframe["FILTER_query"].str.contains("PASS")),
-        (dataframe["FILTER_truth"].str.contains("EXCLUDE"))
-        & (dataframe["FILTER_query"].str.contains("EXCLUDE")),
-        (dataframe["FILTER_truth"].str.contains("PASS"))
-        & (dataframe["FILTER_query"].str.contains("EXCLUDE")),
-        (dataframe["FILTER_truth"].str.contains("EXCLUDE"))
-        & (dataframe["FILTER_query"].str.contains("PASS")),
-        (dataframe["FILTER_truth"].str.contains("PASS"))
-        & (dataframe["FILTER_query"] == "."),
-        (dataframe["FILTER_truth"].str.contains("EXCLUDE"))
-        & (dataframe["FILTER_query"] == "."),
-        (dataframe["FILTER_truth"] == ".")
-        & (dataframe["FILTER_query"].str.contains("PASS")),
-        (dataframe["FILTER_truth"] == ".")
-        & (dataframe["FILTER_query"].str.contains("EXCLUDE")),
+        # No change PASS
+        (merged_var_df["FILTER_truth"].str.contains("PASS"))
+        & (merged_var_df["FILTER_query"].str.contains("PASS")),
+        # No change EXCLUDE
+        (merged_var_df["FILTER_truth"].str.contains("EXCLUDE"))
+        & (merged_var_df["FILTER_query"].str.contains("EXCLUDE")),
+        # Change from PASS to EXCLUDE
+        (merged_var_df["FILTER_truth"].str.contains("PASS"))
+        & (merged_var_df["FILTER_query"].str.contains("EXCLUDE")),
+        # Change from EXCLUDE to PASS
+        (merged_var_df["FILTER_truth"].str.contains("EXCLUDE"))
+        & (merged_var_df["FILTER_query"].str.contains("PASS")),
+        # Variant removed PASS
+        (merged_var_df["FILTER_truth"].str.contains("PASS"))
+        & (merged_var_df["FILTER_query"] == "."),
+        # Variant removed EXCLUDE
+        (merged_var_df["FILTER_truth"].str.contains("EXCLUDE"))
+        & (merged_var_df["FILTER_query"] == "."),
+        # Variant added PASS
+        (merged_var_df["FILTER_truth"] == ".")
+        & (merged_var_df["FILTER_query"].str.contains("PASS")),
+        # Variant added EXCLUDE
+        (merged_var_df["FILTER_truth"] == ".")
+        & (merged_var_df["FILTER_query"].str.contains("EXCLUDE")),
+        # No change, rescued variant
         (
-            dataframe["FILTER_truth"].str.contains("rescued")
-            | dataframe["FILTER_query"].str.contains("rescued")
+            merged_var_df["FILTER_truth"].str.contains("rescued")
+            | merged_var_df["FILTER_query"].str.contains("rescued")
         )
-        & (dataframe["FILTER_truth"] == dataframe["FILTER_query"]),
+        & (merged_var_df["FILTER_truth"] == merged_var_df["FILTER_query"]),
+        # Changed rescued variant
         (
-            dataframe["FILTER_truth"].str.contains("rescued")
-            | dataframe["FILTER_query"].str.contains("rescued")
+            merged_var_df["FILTER_truth"].str.contains("rescued")
+            | merged_var_df["FILTER_query"].str.contains("rescued")
         )
-        & (dataframe["FILTER_truth"] != dataframe["FILTER_query"]),
+        & (merged_var_df["FILTER_truth"] != merged_var_df["FILTER_query"]),
     ]
 
     # Assign strings for each condition specified
@@ -82,9 +93,10 @@ def add_filter_column_change(dataframe):
     ]
 
     # Create new column with the new conditions
-    dataframe["FILTER_change"] = np.select(conditions, choices, default="Unknown")
+    merged_var_df["FILTER_change"] = np.select(conditions, choices,
+                                               default="Unknown")
 
-    return dataframe
+    return merged_var_df
 
 
 def create_interactive_correlation_plot(csv_file, output_path):
@@ -228,14 +240,23 @@ def save_plot_pdf_html(input_file, output_path):
         Filepath corresponding to the output .html and .pdf files
     """
     fig = create_interactive_correlation_plot(input_file, output_path)
+    if fig is None:
+        raise RuntimeError(f"Failed to create figure from {input_file}")
 
     # Save as HTML
     fig.write_html(f"{output_path}.html")
     print(f"Interactive plot saved to {output_path}.html")
 
     # Save as pdf
-    fig.write_image(f"{output_path}.pdf")
-    print(f"Interactive plot saved to {output_path}.pdf")
+    try:
+        fig.write_image(f"{output_path}.pdf")
+        print(f"Static pdf saved to {output_path}.pdf")
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to export PDF. Ensure 'kaleido' is installed. "
+            f"Error: {e}"
+        ) from e
+
 
 
 def parse_args() -> argparse.Namespace:
