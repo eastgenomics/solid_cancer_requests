@@ -35,7 +35,7 @@ def add_filter_column_change(merged_var_df):
                                       columns.
 
     Returns:
-        pd.DataFrame: The modified dataframe with the new 'FILTER_change'
+        merged_var_df (pd.DataFrame): The modified dataframe with the new 'FILTER_change'
                                            column.
     """
     # Set up all conditions
