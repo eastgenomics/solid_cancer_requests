@@ -195,14 +195,14 @@ def create_interactive_correlation_plot(csv_file, output_path):
         color_discrete_map = {
             "No change PASS": "#00CC96",
             "No change EXCLUDE": "#636EFA",
+            "No change, rescued variant": "#00CC1B",
             "Change from PASS to EXCLUDE": "#FFA15A",
             "Change from EXCLUDE to PASS": "#FECB52",
+            "Change rescued variant": "#A1A31F",
             "Variant removed PASS": "#F14526",
             "Variant removed EXCLUDE": "#19D3F3",
             "Variant added PASS": "#FF6692",
             "Variant added EXCLUDE": "#AB63FA",
-            "No change, rescued variant": "#00CC1B",
-            "Change rescued variant": "#A1A31F",
             "Unknown": "#696969",
         }
 
@@ -218,6 +218,9 @@ def create_interactive_correlation_plot(csv_file, output_path):
                          'DP_truth','DP_query',
                          'FILTER_truth','FILTER_query',
                          'FILTER_change'],
+            category_orders={
+                "FILTER_change": list(color_discrete_map.keys())
+            },
             title=f"VAF Correlation Plot for {sample}<br>Pearson "
             f"Correlation: {correlation:.3f}",
             labels={"FILTER_change": "Filter Change"},
