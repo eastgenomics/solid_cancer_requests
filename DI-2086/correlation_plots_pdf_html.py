@@ -11,24 +11,71 @@ def add_filter_column_change(merged_var_df):
     Add a filter change column to the dataframe based on the following conditions:
     The new column 'FILTER_change' will indicate:
     - 'No change PASS' if both FILTER_truth and FILTER_query contain 'PASS'
-    - 'No change EXCLUDE' if both FILTER_truth and FILTER_query are 'EXCLUDE'
+        Example pair values: 
+            - 'PASS' -> 'PASS'
+    - 'No change EXCLUDE' if both FILTER_truth and FILTER_query have 'EXCLUDE'
+        Example pair values:
+            - 'EXCLUDE' -> 'EXCLUDE'
+            - 'LowSupport;LowDP;rescued;EXCLUDE' -> 'LowSupport;LowDP;rescued;EXCLUDE'
+            - 'LowSupport;EXCLUDE' -> 'EXCLUDE'
+            - 'EXCLUDE' -> 'LowSupport;EXCLUDE'
     - 'Change from PASS to EXCLUDE' if FILTER_truth contains 'PASS'
        and FILTER_query contains 'EXCLUDE'
+        Example pair values:
+            - 'PASS' -> 'EXCLUDE'
+            - 'PASS' -> 'LowSupport;EXCLUDE'
+            - 'PASS' -> 'LowSupport;LowDP;rescued;EXCLUDE'
     - 'Change from EXCLUDE to PASS' if FILTER_truth contains 'EXCLUDE'
        and FILTER_query contains 'PASS'
+        Example pair values:
+            - 'EXCLUDE' -> 'PASS'
+            - 'LowSupport;EXCLUDE' -> 'PASS'
+            - 'LowSupport;LowDP;rescued;EXCLUDE' -> 'PASS'
     - 'Variant removed PASS' if FILTER_truth contains 'PASS'
        and FILTER_query is '.'
+        Example pair values:
+            - 'PASS' -> '.'
     - 'Variant removed EXCLUDE' if FILTER_truth contains 'EXCLUDE'
        and FILTER_query is '.'
+        Example pair values:
+            - 'EXCLUDE' -> '.'
+            - 'LowSupport;EXCLUDE' -> '.'
+            - 'LowSupport;LowDP;rescued;EXCLUDE' -> '.'
     - 'Variant added PASS' if FILTER_truth is '.'
        and FILTER_query contains 'PASS'
+        Example pair values:
+            - '.' -> 'PASS'
     - 'Variant added EXCLUDE' if FILTER_truth is '.'
        and FILTER_query contains 'EXCLUDE'
+        Example pair values:
+            - '.' -> 'EXCLUDE'
+            - '.' -> 'LowSupport;EXCLUDE'
+            - '.' -> 'LowSupport;LowDP;rescued;EXCLUDE'
     - 'No change, rescued variant' if either FILTER truth or query contains
       'rescued' and are identical
+        Example pair values:
+            - 'LowSupport;LowDP;rescued' -> 'LowSupport;LowDP;rescued'
+            - 'rescued' -> 'rescued'
     - 'Changed rescued variant' if either FILTER truth or query contains
       'rescued' and are not identical
+        Example pair values:
+            - 'rescued' -> 'EXCLUDE'
+            - 'rescued' -> 'PASS'
+            - 'PASS' -> 'rescued'
+            - 'EXCLUDE' -> 'rescued'
+            - 'LowSupport;EXCLUDE' -> 'LowSupport;LowDP;rescued'
+            - 'LowSupport;LowDP;rescued' -> 'LowSupport;EXCLUDE
+            - 'PASS' -> 'LowSupport;rescued'
+            - 'LowSupport;rescued' -> 'PASS'
+            - 'LowSupport;LowDP;rescued;EXCLUDE' -> 'LowSupport;rescued'
+            - 'LowSupport;rescued' -> 'LowSupport;LowDP;rescued;EXCLUDE'
 
+    NOTES: 
+        - If more than one condition is met, the first condition in the list
+          will be applied.
+        - If none of the conditions are met, 'Unknown' will be assigned.
+        - No cases where FILTER could be NaN or 'rescued;PASS' have been
+          observed in the datasets, so these have not been explicitly handled.
     Args:
         merged_var_df (pd.DataFrame): The input dataframe containing 
                                       'FILTER_truth' and 'FILTER_query'
@@ -160,7 +207,7 @@ def create_interactive_correlation_plot(csv_file, output_path):
         }
 
         # Create interactive scatter plot
-        sample = df["sample"][0]
+        sample = df["sample"].iloc[0]
         fig = px.scatter(
             df,
             x="VAF_truth",
@@ -225,8 +272,8 @@ def create_interactive_correlation_plot(csv_file, output_path):
 
     # Raise an error if the processing has not taken place
     except Exception as e:
-        print(f"Error processing {csv_file}: {str(e)}")
-        return None
+        print(f"Error processing {csv_file}: {e!s}")
+        raise
 
 
 def save_plot_pdf_html(input_file, output_path):
@@ -263,11 +310,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate .html and .pdf from the sample.merged.csv files"
     )
-    parser.add_argument("--feature_file", help="Input feature .merged.csv file")
-    parser.add_argument(
-        "--output_path", help="Output filepath, no need to specify .pdf or .html"
-    )
-    # TODO: change this to use output directory and name the filename based on the sample.
+    parser.add_argument("--feature_file", required=True,
+                        help="Input feature .merged.csv file")
+    parser.add_argument("--output_path", required=True,
+                        help="Output filepath, no need to specify "
+                             ".pdf or .html")
     args = parser.parse_args()
 
     return args

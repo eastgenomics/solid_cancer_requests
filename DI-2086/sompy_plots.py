@@ -18,12 +18,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate barplots from a DNAnexus folderpath containing "
                     "sompy results")
-    parser.add_argument("--project_id", help="Project in which sompy results "
-                                             "are located")
-    parser.add_argument("--folderpath", help="Folderpath of sompy results\t"
-                                             "e.g.: /parentfolder/childfolder")
-    parser.add_argument("--output_path", help="Local path in which plots and "
-                                              ".csv table outputs are stored")
+    parser.add_argument("--project_id", required=True,
+                        help="Project in which sompy results are located")
+    parser.add_argument("--folderpath", required=True,
+                        help="Folderpath of sompy results\t"
+                             "e.g.: /parentfolder/childfolder")
+    parser.add_argument("--output_path", required=True,
+                        help="Local path in which plots and "
+                             ".csv table outputs are stored")
 
     args = parser.parse_args()
 
@@ -93,7 +95,7 @@ def generate_plots_from_stats_df(stats_df, output_path):
     # Use the database to create a plot for each sequencing run
     runs = stats_df['run'].unique()
 
-    for i, run in enumerate(runs):
+    for _i, run in enumerate(runs):
         run_data = stats_df[stats_df['run'] == run].reset_index(drop=True)
 
         # Adjust figure size based on number of samples

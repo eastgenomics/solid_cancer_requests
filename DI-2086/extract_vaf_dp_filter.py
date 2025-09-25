@@ -164,11 +164,16 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         description="Extract VAF and DP from VCF files based on features CSV.")
-    parser.add_argument("--features_file", help="Input features CSV file")
-    parser.add_argument("--query_file", help="Input query VCF file")
-    parser.add_argument("--truth_file", help="Input truth VCF file")
-    parser.add_argument("--output_file", help="Filename to storing output")
-    parser.add_argument("--sample_name", help="Sample identifier")
+    parser.add_argument("--features_file", required=True,
+                        help="Input features CSV file")
+    parser.add_argument("--query_file", required=True,
+                        help="Input query VCF file")
+    parser.add_argument("--truth_file", required=True,
+                        help="Input truth VCF file")
+    parser.add_argument("--output_file", required=True,
+                        help="Filename to storing output")
+    parser.add_argument("--sample_name", required=True,
+                        help="Sample identifier")
 
     args = parser.parse_args()
 
