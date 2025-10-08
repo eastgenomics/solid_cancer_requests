@@ -12,10 +12,10 @@ def add_filter_column_change(merged_var_df):
     Add a filter change column to the dataframe based on the following conditions:
     The new column 'FILTER_change' will indicate:
     - 'No change PASS' if both FILTER_truth and FILTER_query contain 'PASS'
-        Example pair values: 
+        Example pair values:
             - 'PASS' -> 'PASS'
-            - 'rescued' -> 'PASS'
-            - 'PASS' -> 'rescued'
+            - 'LowSupport;rescued' -> 'PASS'
+            - 'PASS' -> 'LowSupport;LowDP;rescued'
             - 'LowSupport;LowDP;rescued' -> 'LowSupport;LowDP;rescued'
             - 'rescued' -> 'rescued'
     - 'No change EXCLUDE' if both FILTER_truth and FILTER_query have 'EXCLUDE'
@@ -69,7 +69,7 @@ def add_filter_column_change(merged_var_df):
         - No cases where FILTER could be NaN or 'rescued;PASS' have been
           observed in the datasets, so these have not been explicitly handled.
     Args:
-        merged_var_df (pd.DataFrame): The input dataframe containing 
+        merged_var_df (pd.DataFrame): The input dataframe containing
                                       'FILTER_truth' and 'FILTER_query'
                                       columns.
 
@@ -81,7 +81,7 @@ def add_filter_column_change(merged_var_df):
     conditions = [
         # No change PASS
         (
-            merged_var_df["FILTER_truth"].str.contains("PASS|rescued") 
+            merged_var_df["FILTER_truth"].str.contains("PASS|rescued")
             & ~merged_var_df["FILTER_truth"].str.contains("EXCLUDE")
         )
         & (
@@ -93,7 +93,7 @@ def add_filter_column_change(merged_var_df):
         & (merged_var_df["FILTER_query"].str.contains("EXCLUDE")),
         # Change from PASS to EXCLUDE
         (
-            merged_var_df["FILTER_truth"].str.contains("PASS|rescued") 
+            merged_var_df["FILTER_truth"].str.contains("PASS|rescued")
             & ~merged_var_df["FILTER_truth"].str.contains("EXCLUDE")
         )
         & (merged_var_df["FILTER_query"].str.contains("EXCLUDE")),
@@ -105,7 +105,7 @@ def add_filter_column_change(merged_var_df):
         ),
         # Variant removed PASS
         (
-            merged_var_df["FILTER_truth"].str.contains("PASS|rescued") 
+            merged_var_df["FILTER_truth"].str.contains("PASS|rescued")
             & ~merged_var_df["FILTER_truth"].str.contains("EXCLUDE")
         )
         & (merged_var_df["FILTER_query"] == "."),
@@ -185,7 +185,7 @@ def create_interactive_correlation_plot(csv_file, output_path):
         # Calculate correlation of all samples
         r2_total = r2_score(df["VAF_truth"], df["VAF_query"])
         print(f"R² correlation: {r2_total:.4f}")
-        
+
         # Calculate the correlation of only PASS related samples
         subset_df = df[df["FILTER_change"].isin(
             ["No change PASS",
@@ -193,6 +193,12 @@ def create_interactive_correlation_plot(csv_file, output_path):
              "Change from EXCLUDE to PASS",
              "Variant added PASS",
              "Variant removed PASS"])]
+
+        # Raise an error if less than 2 PASS related variants are found
+        if len(subset_df) < 2:
+            raise ValueError("Less than 2 PASS related variants found for R² calculation."
+                             f" Found {len(subset_df)} variants.")
+
         r2_subset = r2_score(subset_df["VAF_truth"], subset_df["VAF_query"])
         print(f"R² correlation (PASS related): {r2_subset:.4f}")
         print("Checking customdata order:")
