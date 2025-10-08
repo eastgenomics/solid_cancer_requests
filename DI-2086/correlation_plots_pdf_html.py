@@ -17,7 +17,7 @@ def add_filter_column_change(merged_var_df):
             - 'LowSupport;rescued' -> 'PASS'
             - 'PASS' -> 'LowSupport;LowDP;rescued'
             - 'LowSupport;LowDP;rescued' -> 'LowSupport;LowDP;rescued'
-            - 'rescued' -> 'rescued'
+            - 'Blacklist;LowSupport;rescued' -> 'Blacklist;LowSupport;LowDP;rescued'
     - 'No change EXCLUDE' if both FILTER_truth and FILTER_query have 'EXCLUDE'
         Example pair values:
             - 'EXCLUDE' -> 'EXCLUDE'
@@ -30,7 +30,7 @@ def add_filter_column_change(merged_var_df):
             - 'PASS' -> 'EXCLUDE'
             - 'PASS' -> 'LowSupport;EXCLUDE'
             - 'PASS' -> 'LowSupport;LowDP;rescued;EXCLUDE'
-            - 'rescued' -> 'EXCLUDE'
+            - 'LowSupport;rescued' -> 'EXCLUDE'
             - 'LowSupport;rescued' -> 'LowSupport;LowDP;rescued;EXCLUDE'
     - 'Change from EXCLUDE to PASS' if FILTER_truth contains 'EXCLUDE'
        and FILTER_query contains 'PASS'
@@ -38,13 +38,13 @@ def add_filter_column_change(merged_var_df):
             - 'EXCLUDE' -> 'PASS'
             - 'LowSupport;EXCLUDE' -> 'PASS'
             - 'LowSupport;LowDP;rescued;EXCLUDE' -> 'PASS'
-            - 'EXCLUDE' -> 'rescued'
+            - 'EXCLUDE' -> 'LowSupport;LowDP;rescued'
             - 'LowSupport;EXCLUDE' -> 'LowSupport;rescued'
     - 'Variant removed PASS' if FILTER_truth contains 'PASS'
        and FILTER_query is '.'
         Example pair values:
             - 'PASS' -> '.'
-            - 'rescued' -> '.'
+            - 'Blacklist;LowSupport;LowDP;rescued' -> '.'
     - 'Variant removed EXCLUDE' if FILTER_truth contains 'EXCLUDE'
        and FILTER_query is '.'
         Example pair values:
