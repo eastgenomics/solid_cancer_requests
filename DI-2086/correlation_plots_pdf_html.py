@@ -233,8 +233,8 @@ def create_interactive_correlation_plot(csv_file, output_path):
                 "FILTER_change": list(color_discrete_map.keys())
             },
             title=f"VAF Correlation Plot for {sample}<br>"
-            f"R² Correlation of all samples: {r2_total:.4f} <br>"
-            f"R² Correlation of PASS related samples: {r2_subset:.4f}",
+            f"R² Correlation of all variants: {r2_total:.4f} <br>"
+            f"R² Correlation of PASS related variants: {r2_subset:.4f}",
             labels={"FILTER_change": "Filter Change"},
         )
         print(
