@@ -6,7 +6,7 @@ import pandas as pd
 
 #Path
 BASE_PATH = r"\\Clingen\cg\Genetics\WGS\WGS_Excel\Sendout CSVs"
-#OUT_PATH = need to be determined
+#OUT_PATH = r"\\appdata\clingencg\Regional Genetics Laboratories\Bioinformatics\temp_siqi\29052026_WGS_CSV_merge"
 
 def merge_genetics_csv(base_path,output_path):
     all_dfs = []
@@ -60,7 +60,7 @@ def merge_genetics_csv(base_path,output_path):
             print(f"Error processing file {file_name}: {e}")
             continue
 
-    # Merge everything together
+    # Merge everything
     if all_dfs:
         merged_df = pd.concat(all_dfs, ignore_index=True)
         
