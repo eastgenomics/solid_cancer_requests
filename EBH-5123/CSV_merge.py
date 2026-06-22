@@ -8,8 +8,11 @@ import pandas as pd
 #BASE_PATH = r"\\Clingen\cg\Genetics\WGS\WGS_Excel\Sendout CSVs"
 #OUT_PATH = r"\\appdata\clingencg\Regional Genetics Laboratories\Bioinformatics\temp_siqi\29052026_WGS_CSV_merge"
 
-BASE_PATH = r"/Users/YIN/Library/CloudStorage/OneDrive-NHS/Clinical_Bioinformatics_Genomics_STP/Clinical_Bioinformatician/Help_desk/29052026_WGS_CSV_merge.py/Sendout_CSV"
-OUT_PATH = r"/Users/YIN/Library/CloudStorage/OneDrive-NHS/Clinical_Bioinformatics_Genomics_STP/Clinical_Bioinformatician/Help_desk/29052026_WGS_CSV_merge.py/merged_output"
+current_folder = os.getcwd()
+
+# Dynamically builds the paths
+BASE_PATH = os.path.join(current_folder, "Sendout CSV")
+OUT_PATH = os.path.join(current_folder, "merged_output")
 
 def merge_genetics_csv(base_path,output_path):
     all_dfs = []
