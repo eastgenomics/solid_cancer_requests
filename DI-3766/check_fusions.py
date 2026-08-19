@@ -57,6 +57,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--workbook_file_id",
         type=str,
+        nargs='+',
         required=True,
         help="DNAnexus file ID of the RNA-fusions workbook (e.g. "
         "file-J9jKpfj4yXj1KZ3GK8bvj5Vx).",
@@ -71,10 +72,10 @@ def parse_arguments() -> argparse.Namespace:
         "file; if omitted the file's default project context is used.",
     )
     parser.add_argument(
-        "--expected_fusions_csv",
+        "--expected_fusions_tsv",
         type=str,
         required=True,
-        help="Local CSV of expected fusions, with 'sample_id' and "
+        help="Local TSV of expected fusions, with 'sample_id' and "
         "'fusion_name' columns (one row per expected fusion per sample).",
     )
     parser.add_argument(
@@ -98,7 +99,7 @@ def parse_arguments() -> argparse.Namespace:
         required=False,
         default=None,
         help="Path to write the output TSV to (default: derived from "
-        "--expected_fusions_csv, e.g. 'expected_fusions_checked.tsv').",
+        "--expected_fusions_tsv, e.g. 'expected_fusions_checked.tsv').",
     )
     return parser.parse_args()
 
@@ -282,55 +283,67 @@ def match_starfusion(
 
 def main() -> None:
     args = parse_arguments()
-
     output_path = args.output
-    if output_path is None:
-        csv_stem = re.sub(r"\.csv$", "", args.expected_fusions_csv, flags=re.IGNORECASE)
-        output_path = f"{csv_stem}_checked.tsv"
+    for workbook_file_id in args.workbook_file_id:
 
-    try:
-        print(args.workbook_file_id)
-        cmd = (
-        f"dx cat {args.workbook_file_id} "
-        )    
-        output = subprocess.run(cmd, shell=True,
-                             capture_output=True, check=False)
+        try:
+            cmd = (
+            f"dx describe {workbook_file_id} --name "
+            )    
+            run_name_output = subprocess.run(cmd, shell=True,
+                                capture_output=True)
+            run_name_list = run_name_output.stdout.decode("utf-8").strip().split("_")[0:4]
+            run_name = "_".join(run_name_list)
 
-        sample_excel = openpyxl.load_workbook(io.BytesIO(output.stdout),
-                                           data_only=False)
-    except pd.errors.EmptyDataError as error:
-        print(f"Error reading file {args.workbook_file_id}: {error}")
-        print(f"Check archival status of {args.workbook_file_id}")
+            print(run_name)
 
-    arriba_worksheet, starfusion_worksheet = load_tool_sheets(
-            sample_excel, args.arriba_sheet_name, args.starfusion_sheet_name
-    )
+            cmd = (
+            f"dx cat {workbook_file_id}"
+            )    
+            output = subprocess.run(cmd, shell=True,
+                                capture_output=True)
 
-    arriba_df = build_arriba_fusion_names(arriba_worksheet)
-    print(arriba_df)
-    starfusion_df = build_starfusion_dataframe(starfusion_worksheet)
-    print(starfusion_df)
+            sample_excel = openpyxl.load_workbook(io.BytesIO(output.stdout),
+                                            data_only=False)
+        except pd.errors.EmptyDataError as error:
+            print(f"Error reading file {args.workbook_file_id}: {error}")
+            print(f"Check archival status of {args.workbook_file_id}")
+            continue
 
-    expected_fusions = pd.read_csv(args.expected_fusions_csv)
-    print(expected_fusions)
+        if output_path is None:
+            csv_stem = run_name
+            output_path = f"{csv_stem}_checked.tsv"
 
-    output_rows = []
-    for _, expected in expected_fusions.iterrows():
-        sample_id = str(expected["Cases (SP)"])
-        fusion_name = str(expected["Fusion detected"])
-        print(f"Checking sample '{sample_id}' fusion '{fusion_name}'...")
+        arriba_worksheet, starfusion_worksheet = load_tool_sheets(
+                sample_excel, args.arriba_sheet_name, args.starfusion_sheet_name
+        )
 
-        arriba_result = match_arriba(arriba_df, sample_id, fusion_name)
-        starfusion_result = match_starfusion(starfusion_df, sample_id, fusion_name)
+        arriba_df = build_arriba_fusion_names(arriba_worksheet)
+        print(arriba_df)
+        starfusion_df = build_starfusion_dataframe(starfusion_worksheet)
+        print(starfusion_df)
 
-        row = {"sample_id": sample_id, "fusion_name": fusion_name}
-        row.update({f"Arriba_{k}": v for k, v in arriba_result.items()})
-        row.update({f"StarFusion_{k}": v for k, v in starfusion_result.items()})
-        output_rows.append(row)
+        expected_fusions = pd.read_csv(args.expected_fusions_tsv, sep="\t")
+        print(expected_fusions)
+        expected_fusions_in_run = expected_fusions[expected_fusions["Run_name"].str.contains(run_name)]
 
-    output_df = pd.DataFrame(output_rows)
-    output_df.to_csv(output_path, sep="\t", index=False)
-    print(f"Wrote {len(output_df)} rows to {output_path}")
+        output_rows = []
+        for _, expected in expected_fusions_in_run.iterrows():
+            sample_id = str(expected["Cases (SP)"])
+            fusion_name = str(expected["Fusion detected"])
+            print(f"Checking sample '{sample_id}' fusion '{fusion_name}'...")
+
+            arriba_result = match_arriba(arriba_df, sample_id, fusion_name)
+            starfusion_result = match_starfusion(starfusion_df, sample_id, fusion_name)
+
+            row = {"sample_id": sample_id, "fusion_name": fusion_name}
+            row.update({f"Arriba_{k}": v for k, v in arriba_result.items()})
+            row.update({f"StarFusion_{k}": v for k, v in starfusion_result.items()})
+            output_rows.append(row)
+
+        output_df = pd.DataFrame(output_rows)
+        output_df.to_csv(output_path, sep="\t", index=False)
+        print(f"Wrote {len(output_df)} rows to {output_path}")
 
 
 if __name__ == "__main__":

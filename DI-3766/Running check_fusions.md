@@ -8,11 +8,11 @@ If there are multiple fusions detected for the same gene, only the first one wil
 Inputs: 
 
 - DNAnexus file ID corresponding to a fusion workbook
-- A csv containing Cases (SP) and fusions detected
+- A TSV containing Cases (SP) and fusions detected
  
 outputs:
 
-- A CSV file with the following columns: sample_id, fusion_name, Arriba_breakpoint1, Arriba_breakpoint2, Arriba_split_reads1, Arriba_split_reads2, Arriba_coverage1, Arriba_coverage2, Arriba_confidence, StarFusion_LeftBreakpoint, StarFusion_RightBreakpoint, StarFusion_JunctionReadCount
+- A TSV file with the following columns: sample_id, fusion_name, Arriba_breakpoint1, Arriba_breakpoint2, Arriba_split_reads1, Arriba_split_reads2, Arriba_coverage1, Arriba_coverage2, Arriba_confidence, StarFusion_LeftBreakpoint, StarFusion_RightBreakpoint, StarFusion_JunctionReadCount
 
 Note: if a fusion is not detected by one of the tools, the corresponding rows contain "."
 
@@ -35,7 +35,6 @@ This is not being added here as one of the sheets includes PID. Use this file to
 ```
  python check_fusions.py \
  --workbook_file_id file-J9jKpfj4yXj1KZ3GK8bvj5Vx \
- --expected_fusions_csv 260731_A01295_0820_BHNYC3DRX7_RES_expected.csv \
- --output 260731_A01295_0820_BHNYC3DRX7_RES_expected.checked.csv
+ --expected_fusions_tsv 260731_A01295_0820_BHNYC3DRX7_RES_expected.tsv 
 
  ```
