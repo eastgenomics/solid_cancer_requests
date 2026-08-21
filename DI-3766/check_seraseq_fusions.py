@@ -19,21 +19,13 @@ ARRIBA_SPECIMEN_COLUMN = "file_name"
 ARRIBA_GENE1_COLUMN = "#gene1"
 ARRIBA_GENE2_COLUMN = "gene2"
 ARRIBA_OUTPUT_COLUMNS = [
-    "breakpoint1",
-    "breakpoint2",
-    "split_reads1",
-    "split_reads2",
-    "coverage1",
-    "coverage2",
-    "confidence",
+    "present"
 ]
 
 STARFUSION_FILENAME_COLUMN = "file_name"
 STARFUSION_FUSION_NAME_COLUMN = "#FusionName"
 STARFUSION_OUTPUT_COLUMNS = [
-    "LeftBreakpoint",
-    "RightBreakpoint",
-    "JunctionReadCount",
+    "present"
 ]
 
 MISSING_VALUE = "."
@@ -132,7 +124,6 @@ def load_tool_sheets(
         If either sheet name is not found in the workbook
     """
     sheets = workbook.sheetnames
-    print(sheets)
     for sheet_name in (arriba_sheet, starfusion_sheet):
         if sheet_name not in sheets:
             raise RuntimeError(
@@ -193,7 +184,7 @@ def build_starfusion_dataframe(starfusion_worksheet) -> pd.DataFrame:
     return starfusion_df
 
 
-def match_arriba(arriba_df: pd.DataFrame, sample_id: str, fusion_name: str) -> dict:
+def match_arriba(arriba_df: pd.DataFrame, fusion_name: str) -> dict:
     """
     Look up an expected fusion in the Arriba sheet for a given sample.
 
@@ -213,14 +204,12 @@ def match_arriba(arriba_df: pd.DataFrame, sample_id: str, fusion_name: str) -> d
         every column if no match was found
     """
     matches = arriba_df[
-        (arriba_df["file_name"].str.contains(sample_id))
-        & (arriba_df["fusion_name"] == (fusion_name))
+        arriba_df["fusion_name"] == fusion_name
     ]
 
     if matches.empty:
         matches = arriba_df[
-        (arriba_df["file_name"].str.contains(sample_id))
-        & ((arriba_df["#gene1"] == fusion_name) | (arriba_df["gene2"] == fusion_name))
+        (arriba_df["#gene1"] == fusion_name) | (arriba_df["gene2"] == fusion_name)
         ]
         if matches.empty:
             return {column: MISSING_VALUE for column in ARRIBA_OUTPUT_COLUMNS}
@@ -228,17 +217,17 @@ def match_arriba(arriba_df: pd.DataFrame, sample_id: str, fusion_name: str) -> d
     if len(matches) > 1:
         print(
             f"Warning: {len(matches)} Arriba matches found for sample "
-            f"'{sample_id}' fusion '{fusion_name}'; using the first match."
+            f" fusion '{fusion_name}'; using the first match."
         )
 
     matched_row = matches.iloc[0]
-    print(f"Matched Arriba row for sample '{sample_id}' fusion '{fusion_name}':")
-    print(matched_row)
+    print(f"Matched Arriba row for sample fusion '{fusion_name}':")
+    matched_row["present"] = "yes"
     return {column: matched_row[column] for column in ARRIBA_OUTPUT_COLUMNS}
 
 
 def match_starfusion(
-    starfusion_df: pd.DataFrame, sample_id: str, fusion_name: str
+    starfusion_df: pd.DataFrame, fusion_name: str
 ) -> dict:
     """
     Look up an expected fusion in the STAR-Fusion sheet for a given sample.
@@ -258,32 +247,29 @@ def match_starfusion(
         Mapping of STARFUSION_OUTPUT_COLUMNS to matched values, or "." for
         every column if no match was found
     """
-    matches = starfusion_df[
-        (starfusion_df["file_name"].str.contains(sample_id))
-        & (starfusion_df["fusion_name"] == fusion_name)
-    ]
+    matches = starfusion_df[starfusion_df["fusion_name"] == fusion_name]
 
     if matches.empty:
-        matches = starfusion_df[
-        (starfusion_df["file_name"].str.contains(sample_id))
-        & ((starfusion_df["#FusionName"].str.split("--").str[0] == fusion_name) | (starfusion_df["#FusionName"].str.split("--").str[1] == fusion_name))
-        ]
+        matches = starfusion_df[(starfusion_df["#FusionName"].str.split("--").str[0] == fusion_name) | (starfusion_df["#FusionName"].str.split("--").str[1] == fusion_name)]
+
         if matches.empty:
             return {column: MISSING_VALUE for column in STARFUSION_OUTPUT_COLUMNS}
 
     if len(matches) > 1:
         print(
             f"Warning: {len(matches)} STAR-Fusion matches found for sample "
-            f"'{sample_id}' fusion '{fusion_name}'; using the first match."
+            f"' fusion '{fusion_name}'; using the first match."
         )
 
     matched_row = matches.iloc[0]
+    matched_row["present"] = "yes"
     return {column: matched_row[column] for column in STARFUSION_OUTPUT_COLUMNS}
 
 
 def main() -> None:
     args = parse_arguments()
     output_path = args.output
+    output_rows = []
     for workbook_file_id in args.workbook_file_id:
 
         try:
@@ -292,7 +278,7 @@ def main() -> None:
             )    
             run_name_output = subprocess.run(cmd, shell=True,
                                 capture_output=True)
-            run_name_list = run_name_output.stdout.decode("utf-8").strip().split("_")[0:4]
+            run_name_list = run_name_output.stdout.decode("utf-8").strip().split("_")[0:5]
             run_name = "_".join(run_name_list)
 
             print(run_name)
@@ -306,7 +292,7 @@ def main() -> None:
             sample_excel = openpyxl.load_workbook(io.BytesIO(output.stdout),
                                             data_only=False) 
             csv_stem = run_name
-            output_path = f"{csv_stem}_checked.tsv"
+            output_path = f"control_comparison_checked.tsv"
         except pd.errors.EmptyDataError as error:
             print(f"Error reading file {args.workbook_file_id}: {error}")
             print(f"Check archival status of {args.workbook_file_id}")
@@ -317,31 +303,32 @@ def main() -> None:
         )
 
         arriba_df = build_arriba_fusion_names(arriba_worksheet)
-        print(arriba_df)
         starfusion_df = build_starfusion_dataframe(starfusion_worksheet)
-        print(starfusion_df)
 
-        expected_fusions = pd.read_csv(args.expected_fusions_tsv, sep="\t")
-        expected_fusions_in_run = expected_fusions[expected_fusions["Run_name"].str.contains(run_name)]
+        expected_fusions_in_run = pd.read_csv(args.expected_fusions_tsv, sep="\t")
         print(expected_fusions_in_run)
 
-        output_rows = []
         for _, expected in expected_fusions_in_run.iterrows():
-            sample_id = str(expected["Cases (SP)"])
             fusion_name = str(expected["Fusion detected"])
-            print(f"Checking sample '{sample_id}' fusion '{fusion_name}'...")
+            print(f"Checking sample fusion '{fusion_name}'...")
 
-            arriba_result = match_arriba(arriba_df, sample_id, fusion_name)
-            starfusion_result = match_starfusion(starfusion_df, sample_id, fusion_name)
+            arriba_result = match_arriba(arriba_df, fusion_name)
+            starfusion_result = match_starfusion(starfusion_df, fusion_name)
 
-            row = {"sample_id": sample_id, "fusion_name": fusion_name}
+            row = {"run_name": run_name, "fusion_name": fusion_name}
             row.update({f"Arriba_{k}": v for k, v in arriba_result.items()})
             row.update({f"StarFusion_{k}": v for k, v in starfusion_result.items()})
             output_rows.append(row)
-
-        output_df = pd.DataFrame(output_rows)
-        output_df.to_csv(output_path, sep="\t", index=False)
-        print(f"Wrote {len(output_df)} rows to {output_path}")
+    
+    output_df = pd.DataFrame(output_rows)
+    print(output_df)
+    output_pivot = pd.pivot_table(output_df,index=['fusion_name'],
+                                  values=["Arriba_present", "StarFusion_present"],
+                                  aggfunc="first",
+                                  columns=['run_name'])
+    
+    output_pivot.to_csv(output_path, sep="\t")
+    print(f"Wrote {len(output_df)} rows to {output_path}")
 
 
 if __name__ == "__main__":
