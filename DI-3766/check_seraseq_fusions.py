@@ -204,12 +204,12 @@ def match_arriba(arriba_df: pd.DataFrame, fusion_name: str) -> dict:
         every column if no match was found
     """
     matches = arriba_df[
-        arriba_df["fusion_name"] == fusion_name
+        (arriba_df["fusion_name"] == fusion_name) & (arriba_df[ARRIBA_SPECIMEN_COLUMN].str.contains("Q"))
     ]
 
     if matches.empty:
         matches = arriba_df[
-        (arriba_df["#gene1"] == fusion_name) | (arriba_df["gene2"] == fusion_name)
+        (arriba_df[ARRIBA_SPECIMEN_COLUMN].str.contains("Q")) & ((arriba_df["#gene1"] == fusion_name) | (arriba_df["gene2"] == fusion_name))
         ]
         if matches.empty:
             return {column: MISSING_VALUE for column in ARRIBA_OUTPUT_COLUMNS}
@@ -247,10 +247,10 @@ def match_starfusion(
         Mapping of STARFUSION_OUTPUT_COLUMNS to matched values, or "." for
         every column if no match was found
     """
-    matches = starfusion_df[starfusion_df["fusion_name"] == fusion_name]
+    matches = starfusion_df[(starfusion_df["fusion_name"] == fusion_name) & (starfusion_df["file_name"].str.contains("Q"))]
 
     if matches.empty:
-        matches = starfusion_df[(starfusion_df["#FusionName"].str.split("--").str[0] == fusion_name) | (starfusion_df["#FusionName"].str.split("--").str[1] == fusion_name)]
+        matches = starfusion_df[(starfusion_df["file_name"].str.contains("Q")) & ((starfusion_df["#FusionName"].str.split("--").str[0] == fusion_name) | (starfusion_df["#FusionName"].str.split("--").str[1] == fusion_name))]
 
         if matches.empty:
             return {column: MISSING_VALUE for column in STARFUSION_OUTPUT_COLUMNS}

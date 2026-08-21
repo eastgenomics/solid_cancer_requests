@@ -317,13 +317,10 @@ def main() -> None:
         )
 
         arriba_df = build_arriba_fusion_names(arriba_worksheet)
-        print(arriba_df)
         starfusion_df = build_starfusion_dataframe(starfusion_worksheet)
-        print(starfusion_df)
 
         expected_fusions = pd.read_csv(args.expected_fusions_tsv, sep="\t")
         expected_fusions_in_run = expected_fusions[expected_fusions["Run_name"].str.contains(run_name)]
-        print(expected_fusions_in_run)
 
         output_rows = []
         for _, expected in expected_fusions_in_run.iterrows():
