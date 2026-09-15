@@ -22,7 +22,6 @@ DEPTH_COLS = ["5M", "10M", "15M", "20M", "25M"]
 # Kept in the rate (genuine fusions, some missed): ALK.
 EXCLUDE = {
     "/", "\\", "NEGATIVE CONTROL",   # no fusion
-    "SDC4::ROS1",                    # nothing similar in workbook
     "NPV",                           # NPV on WGS
     "TERT",                          # TERTp, no fusion
     "MAP3KB",                        # suspected only
