@@ -39,6 +39,13 @@ EXCLUDE = {
     "BCR::ABL1", "TPM::NUP210L",     # sample 25020K0005: 12M unique reads, 11.82M dup
 }
 
+# (sample, fusion_name, depth) rows with no data in the workbook, not a real
+# miss. Excluded only at that depth; the same fusion still counts normally at
+# the other depths.
+MISSING_DATA = {
+    ("24268K0065", "CBFB::MYH11", 25),  # RESVal3: no 25M subsample (full depth was 111.8M reads)
+}
+
 def load():
     frames = []
     for path, run in INPUTS:
@@ -58,11 +65,15 @@ def load():
             ["StarFusion_JunctionReadCount", "StarFusion_SpanningFragCount"]
         ].notna().any(axis=1)
         d["either_det"] = d["arriba_det"] | d["star_det"]
+        d["has_data"] = [
+            (s, f, dp) not in MISSING_DATA
+            for s, f, dp in zip(d["sample"], d["fusion_name"], d["depth"])
+        ]
         frames.append(d)
     return pd.concat(frames, ignore_index=True)
 
 def detection_matrix(alld):
-    alld = alld[~alld["fusion_name"].isin(EXCLUDE)]
+    alld = alld[~alld["fusion_name"].isin(EXCLUDE) & alld["has_data"]]
     mat = alld.pivot_table(
         index=["run", "fusion_name", "sample"],
         columns="depth",
@@ -79,7 +90,11 @@ def detection_matrix(alld):
     return mat.sort_values(["Validation run", "Fusion", "Sample"]).reset_index(drop=True)
 
 def detection_rate(alld):
-    is_real = alld["fusion_name"].notna() & ~alld["fusion_name"].isin(EXCLUDE)
+    is_real = (
+        alld["fusion_name"].notna()
+        & ~alld["fusion_name"].isin(EXCLUDE)
+        & alld["has_data"]
+    )
     real = alld[is_real]
 
     rows = []
